@@ -1,0 +1,6 @@
+#save
+docker save nginx:alpine dockerized_minutesmaestro_2_frontend dockerized_minutesmaestro_2_backend -o images.tar
+
+#load
+docker load -i images.tar
+docker-compose up --build

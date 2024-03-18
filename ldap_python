@@ -1,0 +1,75 @@
+#For gradio routes.py in /home/pilnu/anaconda3/envs/MyVenv/python3.10/site-packages/gradio/routes.py
+def ldapPassowredChecker(f):
+            @wraps(f)
+            async def decorators(*args, **kwargs):
+                form_data = kwargs.get('form_data')
+                if form_data is None:
+                    raise TypeError("form_data is None")  
+
+                username = form_data.username.strip()
+                password = form_data.password 
+
+                server = Server('ldap://192.168.100.23', port=389,use_ssl=False, get_info=ALL)
+                conn = Connection(server, user=f"cn={username},cn=Users,dc=server1,dc=local", password=password)
+                if not conn.bind():
+                    # print("LDAP Error")
+                    raise HTTPException(status_code=400, detail="Incorrect credentials.")  
+                    # raise TypeError("Ldap Error")
+                # print("Decorators-->",username, password)
+                
+                return f(*args, **kwargs)
+            return decorators
+
+        @app.post("/login")
+        @app.post("/login/")
+        @ldapPassowredChecker
+        def login(form_data: OAuth2PasswordRequestForm = Depends()):
+            username, password = form_data.username.strip(), form_data.password
+            if app.auth is None:
+                return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+            if (
+                not callable(app.auth)
+                and username in app.auth
+                and compare_passwords_securely(password, app.auth[username])  # type: ignore
+            ) or (callable(app.auth) and app.auth.__call__(username, password)):
+                token = secrets.token_urlsafe(16)
+                app.tokens[token] = username
+                response = JSONResponse(content={"success": True})
+                response.set_cookie(
+                    key=f"access-token-{app.cookie_id}",
+                    value=token,
+                    httponly=True,
+                    samesite="none",
+                    secure=True,
+                )
+                response.set_cookie(
+                    key=f"access-token-unsecure-{app.cookie_id}",
+                    value=token,
+                    httponly=True,
+                )
+                return response
+            else:
+                raise HTTPException(status_code=400, detail="Incorrect credentials.")
+
+
+# For normal python code
+from ldap3 import Server, Connection, ALL
+from fastapi import HTTPException
+
+def ldap_checker(username: str, password: str) -> bool:
+    server = Server('ldap://192.168.100.23', port=389, use_ssl=False, get_info=>
+    conn = Connection(server, user=f"cn={username},cn=Users,dc=server1,dc=local>
+    
+    if not conn.bind():
+        raise HTTPException(status_code=400, detail="Incorrect credentials.")
+    else:
+        return True
+
+# Example usage:
+# Replace 'username' and 'password' with actual values.
+try:
+    ldap_checker('null', 'null')
+    print("Credentials are correct!")
+except HTTPException as e:
+    print("Error:", e)
+
